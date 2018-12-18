@@ -98,7 +98,6 @@ def main():
 
   # Create each output file.
   for arg_file in args.files:
-    print(arg_file)
     (dir_, filename) = os.path.split(arg_file)
     target_lang = filename[:filename.index('.')]
     if target_lang not in ('qqq', 'keys', 'synonyms', 'constants'):

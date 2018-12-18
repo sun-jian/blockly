@@ -268,7 +268,7 @@ class Gen_compressed(threading.Thread):
       params.append(("js_code", "".join(f.readlines())))
       f.close()
 
-    self.do_compile(params, target_filename, filenames, "")
+    self.do_compile(params, target_filename, filenames, [])
 
   def gen_blocks(self):
     target_filename = "blocks_compressed.js"
@@ -299,7 +299,7 @@ class Gen_compressed(threading.Thread):
       f.close()
 
     # Remove Blockly.Blocks to be compatible with Blockly.
-    remove = "var Blockly={Blocks:{}};"
+    remove = ["var Blockly={Blocks:{}};", "Blockly.Types={};"]
     self.do_compile(params, target_filename, filenames, remove)
 
   def gen_generator(self, language):
@@ -605,17 +605,21 @@ developers.google.com/blockly/guides/modify/web/closure""")
 
   # Uncompressed and compressed are run in parallel threads.
   # Uncompressed is limited by processor speed.
+  print('Gen_uncompressed')
   if ('core' in args):
     Gen_uncompressed(core_search_paths, 'blockly_uncompressed.js').start()
 
+  print('Gen_uncompressed')
   if ('accessible' in args):
     Gen_uncompressed(full_search_paths, 'blockly_accessible_uncompressed.js').start()
 
+  print('Gen_compressed')
   # Compressed is limited by network and server speed.
   Gen_compressed(full_search_paths, args).start()
 
   # This is run locally in a separate thread
   # defaultlangfiles checks for changes in the msg files, while manually asking
   # to build langfiles will force the messages to be rebuilt.
+  print('Gen_langfiles')
   if ('langfiles' in args or 'defaultlangfiles' in args):
     Gen_langfiles('langfiles' in args).start()

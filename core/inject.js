@@ -396,7 +396,6 @@ Blockly.inject.loadSounds_ = function(pathToMedia, workspace) {
     while (soundBinds.length) {
       Blockly.unbindEvent_(soundBinds.pop());
     }
-    audioMgr.preload();
   };
 
   // These are bound on mouse/touch events with Blockly.bindEventWithChecks_, so

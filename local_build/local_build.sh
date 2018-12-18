@@ -66,3 +66,41 @@ else
   echo Compilation FAIL.
   exit 1
 fi
+
+
+rm local_blocks_compressed.js 2> /dev/null
+echo Compiling Blockly blocks...
+java -jar $COMPILER \
+  --js='./blocks_provide.js' \
+  --js='../blocks/*.js' \
+  --js='../blocks/arduino/*.js' \
+  --generate_exports \
+  --warning_level='DEFAULT' \
+  --compilation_level SIMPLE_OPTIMIZATIONS \
+  --js_output_file local_blocks_compressed.js
+
+if [ -s local_blocks_compressed.js ]; then
+  echo Compilation OK.
+else
+  echo Compilation FAIL.
+  exit 1
+fi
+
+
+rm local_arduino_compressed.js 2> /dev/null
+echo Compiling Blockly arduino...
+java -jar $COMPILER \
+  --js='./generator_provider.js' \
+  --js='../generators/arduino.js' \
+  --js='../generators/arduino/**.js' \
+  --generate_exports \
+  --warning_level='DEFAULT' \
+  --compilation_level SIMPLE_OPTIMIZATIONS \
+  --js_output_file local_arduino_compressed.js
+
+if [ -s local_arduino_compressed.js ]; then
+  echo Compilation OK.
+else
+  echo Compilation FAIL.
+  exit 1
+fi
