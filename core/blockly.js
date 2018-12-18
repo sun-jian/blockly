@@ -39,6 +39,7 @@ goog.require('Blockly.FieldColour');
 // Add it only if you need it.
 //goog.require('Blockly.FieldDate');
 goog.require('Blockly.FieldDropdown');
+goog.require('Blockly.FieldInstance');
 goog.require('Blockly.FieldImage');
 goog.require('Blockly.FieldTextInput');
 goog.require('Blockly.FieldNumber');
@@ -57,6 +58,7 @@ goog.require('Blockly.utils');
 goog.require('Blockly.Xml');
 
 goog.require('goog.color');
+goog.require('goog.userAgent');
 
 
 // Turn off debugging when compiled.
