@@ -45,7 +45,7 @@ import codecs
 import json
 import os
 import re
-from common import write_files
+from common import write_files, write_files_ardublockly
 
 
 _INPUT_DEF_PATTERN = re.compile("""Blockly.Msg.(\w*)\s*=\s*'(.*)';?\r?$""")
@@ -69,6 +69,8 @@ def main():
                       help='relative directory for output files')
   parser.add_argument('--input_file', default='messages.js',
                       help='input file')
+  parser.add_argument('--ardublockly', action='store_true', default=False,
+                        help='Create files for Ardublockly messages')
   parser.add_argument('--quiet', action='store_true', default=False,
                       help='only display warnings, not routine info')
   args = parser.parse_args()
@@ -80,6 +82,7 @@ def main():
   synonyms = {}
   constants = {}  # Values that are constant across all languages.
   description = ''
+  print(args.input_file+'\n')
   infile = codecs.open(args.input_file, 'r', 'utf-8')
   for line in infile:
     if line.startswith('///'):
@@ -114,10 +117,14 @@ def main():
   infile.close()
 
   # Create <lang_file>.json, keys.json, and qqq.json.
-  write_files(args.author, args.lang, args.output_dir, results, False)
+  if args.ardublockly:
+      write_files_ardublockly(args.author, args.lang, args.output_dir, results)
+  else:
+      write_files(args.author, args.lang, args.output_dir, results, False)
 
   # Create synonyms.json.
-  synonym_file_name = os.path.join(os.curdir, args.output_dir, 'synonyms.json')
+  synonym_name = 'synonyms' + ('_ardublockly.json' if args.ardublockly else '.json')
+  synonym_file_name = os.path.join(os.curdir, args.output_dir, synonym_name)
   with open(synonym_file_name, 'w') as outfile:
     json.dump(synonyms, outfile)
   if not args.quiet:

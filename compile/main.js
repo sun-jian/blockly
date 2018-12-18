@@ -9,6 +9,10 @@ goog.require('Blockly.Constants.Loops');
 goog.require('Blockly.Constants.Math');
 goog.require('Blockly.Constants.Text');
 
+//generators
+goog.require('Blockly.Python');
+goog.require('Blockly.JavaScript');
+
 Main.init = function() {
     Blockly.inject('blocklyDiv', {
         'toolbox': document.getElementById('toolbox')

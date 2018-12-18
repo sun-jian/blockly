@@ -206,6 +206,7 @@ class Gen_compressed(threading.Thread):
       self.gen_blocks()
 
     if ('generators' in self.bundles):
+      self.gen_generator("arduino")
       self.gen_generator("javascript")
       self.gen_generator("python")
       self.gen_generator("php")
@@ -285,7 +286,12 @@ class Gen_compressed(threading.Thread):
     # Read in all the source files.
     # Add Blockly.Blocks to be compatible with the compiler.
     params.append(("js_code", "goog.provide('Blockly');goog.provide('Blockly.Blocks');"))
-    filenames = glob.glob(os.path.join("blocks", "*.js"))
+    params.append(("js_code", "goog.provide('Blockly.Types');"))
+    filenames=[]
+    ext_filenames = glob.glob(os.path.join("blocks", "**", "*.js"))
+    origin_filenames = glob.glob(os.path.join("blocks", "*.js"))
+    filenames.extend(origin_filenames)
+    filenames.extend(ext_filenames)
     filenames.sort()  # Deterministic build.
     for filename in filenames:
       f = open(filename)
@@ -312,6 +318,7 @@ class Gen_compressed(threading.Thread):
     # Read in all the source files.
     # Add Blockly.Generator to be compatible with the compiler.
     params.append(("js_code", "goog.provide('Blockly.Generator');"))
+    params.append(("js_code", "goog.provide('Blockly.StaticTyping');"))
     filenames = glob.glob(
         os.path.join("generators", language, "*.js"))
     filenames.sort()  # Deterministic build.
@@ -323,7 +330,7 @@ class Gen_compressed(threading.Thread):
     filenames.insert(0, "[goog.provide]")
 
     # Remove Blockly.Generator to be compatible with Blockly.
-    remove = "var Blockly={Generator:{}};"
+    remove = ["var Blockly={Generator:{}};", "Blockly.StaticTyping={};"]
     self.do_compile(params, target_filename, filenames, remove)
 
   def do_compile(self, params, target_filename, filenames, remove):
@@ -383,7 +390,8 @@ class Gen_compressed(threading.Thread):
         sys.exit(1)
 
       code = HEADER + "\n" + json_data["compiledCode"]
-      code = code.replace(remove, "")
+      for code_statement in remove:
+        code = code.replace(code_statement, "")
 
       # Trim down Google's (and only Google's) Apache licences.
       # The Closure Compiler preserves these.
@@ -454,7 +462,7 @@ class Gen_langfiles(threading.Thread):
       else:
         print("Error checking file creation times: " + e)
 
-  def run(self):
+  def generate_blockly(self):
     # The files msg/json/{en,qqq,synonyms}.json depend on msg/messages.js.
     if (self.force_gen or
         self._rebuild([os.path.join("msg", "messages.js")],
@@ -489,7 +497,7 @@ class Gen_langfiles(threading.Thread):
           "--quiet"]
       json_files = glob.glob(os.path.join("msg", "json", "*.json"))
       json_files = [file for file in json_files if not
-                    (file.endswith(("keys.json", "synonyms.json", "qqq.json", "constants.json")))]
+                    (file.endswith(("keys.json", "synonyms.json", "qqq.json", "constants.json", "_ardublockly.json")))]
       cmd.extend(json_files)
       subprocess.check_call(cmd)
     except (subprocess.CalledProcessError, OSError) as e:
@@ -504,6 +512,61 @@ class Gen_langfiles(threading.Thread):
         print("SUCCESS: " + f)
       else:
         print("FAILED to create " + f)
+
+  def generate_ardublockly(self):
+      # The files msg/json/{en,qqq,synonyms}_ardublockly.json depend on msg/messages_ardublockly.js.
+      if (self.force_gen or
+          self._rebuild([os.path.join("msg", "messages_ardublockly.js")],
+                        [os.path.join("msg", "json", f) for f in
+                        ["en_ardublockly.json", "qqq_ardublockly.json", "synonyms_ardublockly.json"]])):
+        try:
+          subprocess.check_call([
+              "python",
+              os.path.join("i18n", "js_to_json.py"),
+              "--input_file", "msg/messages_ardublockly.js",
+              "--output_dir", "msg/json/",
+              "--ardublockly",
+              "--quiet"])
+        except (subprocess.CalledProcessError, OSError) as e:
+          # Documentation for subprocess.check_call says that CalledProcessError
+          # will be raised on failure, but I found that OSError is also possible.
+          print("Error running i18n/js_to_json.py: ", e)
+          sys.exit(1)
+
+      # Checking whether it is necessary to rebuild the js files would be a lot of
+      # work since we would have to compare each <lang>.json file with each
+      # <lang>.js file.  Rebuilding is easy and cheap, so just go ahead and do it.
+      try:
+        # Use create_messages.py to attach _ardublockly.json files to .json files.
+        cmd = [
+            "python",
+            os.path.join("i18n", "create_messages.py"),
+            "--source_lang_file", os.path.join("msg", "json", "en_ardublockly.json"),
+            "--source_synonym_file", os.path.join("msg", "json", "synonyms_ardublockly.json"),
+            "--source_constants_file", os.path.join("msg", "json", "constants_ardublockly.json"),
+            "--key_file", os.path.join("msg", "json", "keys_ardublockly.json"),
+            "--output_dir", os.path.join("msg", "js"),
+            "--ardublockly",
+            "--quiet"]
+        json_files = glob.glob(os.path.join("msg", "json", "*.json"))
+        json_files = [file for file in json_files if not
+                      (file.endswith(("keys.json", "synonyms.json", "qqq.json", "constants.json", "_ardublockly.json")))]
+        cmd.extend(json_files)
+        subprocess.check_call(cmd)
+      except (subprocess.CalledProcessError, OSError) as e:
+        print("Error running i18n/create_messages.py for Ardublockly pass: ", e)
+        sys.exit(1)
+
+  def run(self):
+      """
+      Runs the thread to generate the Blockly JavaScript string files and append
+      the Ardublockly strings at the end as well.
+      """
+      print('generate_blockly\n')
+      self.generate_blockly()
+      # Ardublockly appends it's strings at the end of blockly output
+      print('generate_ardublockly\n')
+      self.generate_ardublockly()
 
 
 if __name__ == "__main__":
